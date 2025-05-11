@@ -1,0 +1,54 @@
+@startuml DepositContainerDiagram
+title Диаграмма контейнеров: MVP подачи заявки на депозит
+
+top to bottom direction
+
+!include ./template/C4_Component.puml
+
+AddElementTag("new", $bgColor="Tomato", $fontColor="white", $borderColor="red")
+
+System_Boundary(std_it, "ИТ-системы банка «Стандарт»") {
+
+    Container_Boundary(internetbank, "Интернет-банк") {
+        Container(IB_UI, "Веб-интерфейс", "ASP.NET MVC", "Форма депозита, отображение ставок")
+        Container(IB_App, "Бэкенд интернет-банка", ".NET", "Бизнес-логика, вызов сервисов")
+        ContainerDb(IB_DB, "База интернет-банка", "MS SQL", "Хранение пользовательских данных и истории заявок")
+    }
+
+    Container_Boundary(abs, "АБС") {
+        Container(ABS_Desktop, "Десктопный клиент", "Delphi", "Рабочее место менеджера")
+        ContainerDb(ABS_DB, "База данных АБС", "Oracle", "Хранение информации о заявках и счетах")
+        Container(ABS_Logic, "Бизнес-логика", "PL/SQL", "Подтверждение, валидация, расчёты")
+    }
+
+    Container(AppService, "Сервис заявок", ".NET Core", "REST API, валидация, логирование", $tags="new")
+    Container(Queue, "Очередь", "Redis/MSMQ", "Асинхронная доставка заявок", $tags="new")
+    ContainerDb(StakesRepo, "Репозиторий ставок", "MS SQL", "Базовые и персональные ставки", $tags="new")
+    Container(SMSGateway, "СМС-шлюз", "HTTP API", "Отправка уведомлений")
+    Container(Website, "Сайт", "React + PHP", "Форма подачи заявки (без авторизации)")
+    Container(CallCenter, "Интерфейс кол-центра", "Spring Boot + React", "Работа с заявками")
+}
+
+Person(client_guest, "Клиент (неавторизованный)", "Подаёт заявку через сайт")
+Person(client_auth, "Клиент (авторизованный)", "Подаёт заявку через интернет-банк")
+Person(call_operator, "Оператор кол-центра", "Связывается с клиентом и передаёт данные в АБС")
+Person(back_office, "Менеджер бэк-офиса", "Обрабатывает заявку в АБС")
+
+Rel(client_guest, Website, "Подаёт заявку")
+Rel(client_auth, IB_UI, "Заполняет форму")
+Rel(IB_UI, IB_App, "Передаёт данные")
+Rel(IB_App, StakesRepo, "Получает персонализированные ставки и доступные депозиты", "SQL")
+Rel(Website, StakesRepo, "Получает список доступных депозитов с базовыми ставками", "SQL")
+Rel(IB_App, AppService, "Отправка заявки")
+Rel(Website, AppService, "Отправка заявки")
+Rel(AppService, Queue, "Публикация заявки")
+Rel(AppService, SMSGateway, "Запрос на СМС")
+Rel(ABS_Logic, StakesRepo, "Обновление ставок из XLS или вручную", "SQL")
+Rel(Queue, CallCenter, "Доставка заявки")
+Rel(call_operator, CallCenter, "Получает заявку")
+Rel(back_office, ABS_Desktop, "Обрабатывает заявку")
+Rel(ABS_Desktop, ABS_Logic, "Вызов процедур")
+Rel(ABS_Logic, ABS_DB, "Запись/чтение")
+Rel(ABS_Logic, SMSGateway, "Отправка подтверждения клиенту")
+
+@enduml

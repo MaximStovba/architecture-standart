@@ -1,0 +1,24 @@
+@startuml StandardBankContext
+title Контекстная диаграмма: ИТ-системы банка «Стандарт» (MVP)
+
+top to bottom direction
+
+!include ./template/C4_Component.puml
+
+Person(client_guest, "Клиент (неавторизованный)", "Подаёт заявку на сайте")
+Person(client_authenticated, "Клиент (авторизованный)", "Оформляет депозит в интернет-банке")
+Person(call_center_operator, "Оператор кол-центра", "Обрабатывает заявки клиентов")
+Person(bo_manager, "Менеджер бэк-офиса", "Подтверждает условия в АБС")
+System_Ext(telecom_operator, "Телеком-оператор", "Доставляет СМС")
+System_Ext(partner_callcenter, "Партнёрский кол-центр", "Резервное взаимодействие с клиентом")
+
+System(std_it, "ИТ-системы банка «Стандарт»", "Обработка заявок на открытие депозитов\nи взаимодействие с АБС") 
+
+Rel(client_guest, std_it, "Заполняет заявку")
+Rel(client_authenticated, std_it, "Оформляет заявку, подтверждает по СМС")
+Rel(bo_manager, std_it, "Подтверждает ставку и открытие депозита")
+Rel(std_it, telecom_operator, "Передаёт СМС клиенту")
+Rel(std_it, partner_callcenter, "Переадресует часть заявок (резерв)")
+Rel(call_center_operator, std_it, "Работает с заявками")
+
+@enduml
